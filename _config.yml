@@ -7,7 +7,7 @@ inc:
 
   # Company information
   company:      r0rshark Blog
-  url:          localhost:4000
+  url:          https://r0rshark.github.io
   twitter:      r0rshark
   about_link:   https://it.linkedin.com/in/r0rshark
 
