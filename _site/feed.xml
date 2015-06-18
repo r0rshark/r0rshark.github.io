@@ -6,8 +6,8 @@
     <atom:link href="https://r0rshark.github.io/feed.xml" rel="self" type="application/rss+xml" />
     <description></description>
     <language>en-us</language>
-    <pubDate>Thu, 18 Jun 2015 20:11:17 +0000</pubDate>
-    <lastBuildDate>Thu, 18 Jun 2015 20:11:17 +0000</lastBuildDate>
+    <pubDate>Thu, 18 Jun 2015 20:36:29 +0000</pubDate>
+    <lastBuildDate>Thu, 18 Jun 2015 20:36:29 +0000</lastBuildDate>
 
     
     
@@ -32,7 +32,11 @@ First of all why have I chosen to test Ebay? Simple:&lt;/p&gt;
 &lt;/ul&gt;
 
 &lt;p&gt;When trying to find a security issue the best place to &lt;strong&gt;search&lt;/strong&gt; is &lt;strong&gt;where other people hasn’t already looked at&lt;/strong&gt;, so let’s forgot for a moment the main page and let’s search in some other subdomains. Two great tools to discover subdomains are &lt;a href=&quot;https://github.com/fwaeytens/dnsenum&quot;&gt;dnsenum&lt;/a&gt; and &lt;a href=&quot;http://tools.kali.org/information-gathering/fierce&quot;&gt;fierce&lt;/a&gt;. Looking around I found &lt;strong&gt;csr.ebay.it&lt;/strong&gt; which seems to handle the process of selling items as a merchant. Between the different requests sent to this domain a POST request to &lt;code&gt;http://csr.ebay.it/cse/results.jsf&lt;/code&gt; caught my attention because it has a &lt;code&gt;keyword&lt;/code&gt; parameter which is reflected in the response.&lt;/p&gt;
-&lt;div class=&quot;full zoomable&quot;&gt;&lt;img src=&quot;/images/ebay/burp_ebay.png&quot; /&gt;&lt;/div&gt;
+
+&lt;div class=&quot;full zoomable&quot;&gt;
+  &lt;img src=&quot;/images/ebay/burp_ebay.png&quot; /&gt;
+&lt;/div&gt;
+
 &lt;p&gt;A good payload which I use to test for XSS is  &lt;code&gt;xxx&quot;&amp;gt;&amp;lt;svg/onload=alert(1)&amp;gt;&lt;/code&gt; because it provides two functionalities:&lt;/p&gt;
 
 &lt;ol&gt;
@@ -41,9 +45,17 @@ First of all why have I chosen to test Ebay? Simple:&lt;/p&gt;
 &lt;/ol&gt;
 
 &lt;p&gt;So we intercept the request to http://csr.ebay.it/cse/results.jsf  using &lt;a href=&quot;http://portswigger.net/burp/&quot;&gt;Burp&lt;/a&gt; edit the &lt;code&gt;keyword&lt;/code&gt; field with &lt;code&gt;&quot;&amp;gt;&amp;lt;svg/onload=alert(1)&amp;gt;&lt;/code&gt;, submit the request and wait for:&lt;/p&gt;
-&lt;div class=&quot;full zoomable&quot;&gt;&lt;img src=&quot;/images/ebay/ebay_xss.jpg&quot; /&gt;&lt;/div&gt;
+
+&lt;div class=&quot;full zoomable&quot;&gt;
+  &lt;img src=&quot;/images/ebay/ebay_xss.jpg&quot; /&gt;
+&lt;/div&gt;
+
 &lt;p&gt;Yay!!! This is our lucky day but wait a minute where is the session cookie?&lt;/p&gt;
-&lt;div class=&quot;full zoomable&quot;&gt;&lt;img src=&quot;/images/ebay/session_cookie.png&quot; /&gt;&lt;/div&gt;
+
+&lt;div class=&quot;full zoomable&quot;&gt;
+  &lt;img src=&quot;/images/ebay/session_cookie.png&quot; /&gt;
+&lt;/div&gt;
+
 &lt;p&gt;Oh no. The session cookie is set &lt;code&gt;HttpOnly&lt;/code&gt; this means that it is &lt;strong&gt;not accessible through javascript&lt;/strong&gt;, bye bye session hijacking but let’s see what we could do with it.
 Let’s first create our PoC page; this is very straightforward, we just need to create an html form containing the fields and the value which we want to submit and submit it as soon as the user visit the page.&lt;/p&gt;
 
