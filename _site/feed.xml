@@ -6,8 +6,8 @@
     <atom:link href="https://r0rshark.github.io/feed.xml" rel="self" type="application/rss+xml" />
     <description></description>
     <language>en-us</language>
-    <pubDate>Thu, 18 Jun 2015 19:44:00 +0000</pubDate>
-    <lastBuildDate>Thu, 18 Jun 2015 19:44:00 +0000</lastBuildDate>
+    <pubDate>Thu, 18 Jun 2015 20:11:17 +0000</pubDate>
+    <lastBuildDate>Thu, 18 Jun 2015 20:11:17 +0000</lastBuildDate>
 
     
     
@@ -41,7 +41,7 @@ First of all why have I chosen to test Ebay? Simple:&lt;/p&gt;
 &lt;/ol&gt;
 
 &lt;p&gt;So we intercept the request to http://csr.ebay.it/cse/results.jsf  using &lt;a href=&quot;http://portswigger.net/burp/&quot;&gt;Burp&lt;/a&gt; edit the &lt;code&gt;keyword&lt;/code&gt; field with &lt;code&gt;&quot;&amp;gt;&amp;lt;svg/onload=alert(1)&amp;gt;&lt;/code&gt;, submit the request and wait for:&lt;/p&gt;
-&lt;div class=&quot;full zoomable&quot;&gt;&lt;img src=&quot;/images/ebay/ebay_xss.png&quot; /&gt;&lt;/div&gt;
+&lt;div class=&quot;full zoomable&quot;&gt;&lt;img src=&quot;/images/ebay/ebay_xss.jpg&quot; /&gt;&lt;/div&gt;
 &lt;p&gt;Yay!!! This is our lucky day but wait a minute where is the session cookie?&lt;/p&gt;
 &lt;div class=&quot;full zoomable&quot;&gt;&lt;img src=&quot;/images/ebay/session_cookie.png&quot; /&gt;&lt;/div&gt;
 &lt;p&gt;Oh no. The session cookie is set &lt;code&gt;HttpOnly&lt;/code&gt; this means that it is &lt;strong&gt;not accessible through javascript&lt;/strong&gt;, bye bye session hijacking but let’s see what we could do with it.

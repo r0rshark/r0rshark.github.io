@@ -17,7 +17,7 @@
     <meta property="og:title" content="Making you sell what I want: Story of an Ebay XSS "/>
     <meta property="og:url" content="https://r0rshark.github.io/2015/06/16/ebay/"/>
     
-    <meta property="og:image" content="https://r0rshark.github.io/images/ebay/ebay-sign.png"/>
+    <meta property="og:image" content="https://r0rshark.github.io/images/ebay/ebay-sign.jpg"/>
     
     <meta property="og:image" content="https://r0rshark.github.io/images/logo.jpg"/>
     
@@ -44,7 +44,7 @@
 
 <div class="article-cover">
     <div>
-        <img src="/images/ebay/ebay-sign.png" class="image">
+        <img src="/images/ebay/ebay-sign.jpg" class="image">
     </div>
 </div>
 
@@ -85,7 +85,7 @@ First of all why have I chosen to test Ebay? Simple:</p>
 </ol>
 
 <p>So we intercept the request to http://csr.ebay.it/cse/results.jsf  using <a href="http://portswigger.net/burp/">Burp</a> edit the <code>keyword</code> field with <code>"&gt;&lt;svg/onload=alert(1)&gt;</code>, submit the request and wait for:</p>
-<div class="full zoomable"><img src="/images/ebay/ebay_xss.png" /></div>
+<div class="full zoomable"><img src="/images/ebay/ebay_xss.jpg" /></div>
 <p>Yay!!! This is our lucky day but wait a minute where is the session cookie?</p>
 <div class="full zoomable"><img src="/images/ebay/session_cookie.png" /></div>
 <p>Oh no. The session cookie is set <code>HttpOnly</code> this means that it is <strong>not accessible through javascript</strong>, bye bye session hijacking but let’s see what we could do with it.
@@ -252,7 +252,7 @@ I think that at the moment the security level of Ebay is not enough strong consi
         &copy; 2015
 
         <nav>
-            <a href="localhost:4000">r0rshark Blog</a> &middot;
+            <a href="https://r0rshark.github.io">r0rshark Blog</a> &middot;
             <a href="/">Blog</a> &middot;
             <a href="https://it.linkedin.com/in/r0rshark">About Me</a>
         </nav>
