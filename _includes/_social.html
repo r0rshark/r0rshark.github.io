@@ -1,7 +1,7 @@
 {% if site.inc.sharing.twitter or site.inc.sharing.facebook or site.inc.sharing.gplus or site.inc.sharing.hn %}
 <div class="social">
     {% if site.inc.sharing.facebook %}
-    <div class="fb-share-button" data-href="{{site.url}}{{page.url}}" data-layout="button_count"></div>
+    <div class="fb-share-button" data-href="{{site.url}}{{page.facebook.sharelink}}" data-layout="button_count"></div>
     {% endif %}
     {% if site.inc.sharing.twitter %}
     <div>

@@ -6,17 +6,17 @@
     <atom:link href="https://r0rshark.github.io/feed.xml" rel="self" type="application/rss+xml" />
     <description></description>
     <language>en-us</language>
-    <pubDate>Thu, 18 Jun 2015 20:36:29 +0000</pubDate>
-    <lastBuildDate>Thu, 18 Jun 2015 20:36:29 +0000</lastBuildDate>
+    <pubDate>Sat, 20 Jun 2015 13:42:46 +0000</pubDate>
+    <lastBuildDate>Sat, 20 Jun 2015 13:42:46 +0000</lastBuildDate>
 
     
     
     <item>
       <title>Making you sell what I want: Story of an Ebay XSS</title>
-      <link>https://r0rshark.github.io/2015/06/16/ebay/</link>
-      <pubDate>Tue, 16 Jun 2015 00:00:00 +0000</pubDate>
+      <link>https://r0rshark.github.io/2015/06/20/ebay/</link>
+      <pubDate>Sat, 20 Jun 2015 00:00:00 +0000</pubDate>
       <author></author>
-      <guid>https://r0rshark.github.io/2015/06/16/ebay</guid>
+      <guid>https://r0rshark.github.io/2015/06/20/ebay</guid>
       <description>&lt;h3 id=&quot;tldr&quot;&gt;TL;DR&lt;/h3&gt;
 &lt;p&gt;A XSS vulnerability in Ebay can be exploited by an attacker to bypass CSRF protection and make a victim sell unwanted items.
 This is a pretty basic technique but it could be interesting for people which have just entered in the Bug Bounty world.&lt;/p&gt;
@@ -26,7 +26,7 @@ This is a pretty basic technique but it could be interesting for people which ha
 First of all why have I chosen to test Ebay? Simple:&lt;/p&gt;
 
 &lt;ul&gt;
-  &lt;li&gt;The Ebay website was first &lt;strong&gt;developed lots of time ago&lt;/strong&gt; when the word &lt;code&gt;&quot;security&quot;&lt;/code&gt; was not so popular and there weren’t beatiful frameworks which prevents developer to make shit happen.&lt;/li&gt;
+  &lt;li&gt;The Ebay website was first &lt;strong&gt;developed lots of time ago&lt;/strong&gt; when the word &lt;code&gt;&quot;security&quot;&lt;/code&gt; was not so popular and there weren’t beatiful frameworks which prevents developer to make shit happen;&lt;/li&gt;
   &lt;li&gt;Ebay is a pretty high level profile website and has a &lt;strong&gt;Bug Bounty program&lt;/strong&gt; which awards with a mention in their Security Researchers Acknowledgement page;&lt;/li&gt;
   &lt;li&gt;Ebay doens’t offer a cash award (yes this doesn’t seem to be a pro but this means that &lt;strong&gt;not so many people have tested it&lt;/strong&gt; unlike Google and Facebook);&lt;/li&gt;
 &lt;/ul&gt;
