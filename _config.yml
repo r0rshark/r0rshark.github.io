@@ -47,7 +47,7 @@ exclude:     []
 timezone:    nil
 
 # Show future posts
-future:      false
+future:      true
 show_drafts: nil
 limit_posts: 0
 
