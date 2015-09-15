@@ -1,7 +1,7 @@
 inc:
   # Blog Information
   title:        "r0rshark Blog"
-  subtitle:     "Computer Security thoughts and Bug Bounty advises"
+  subtitle:     "Computer Security thoughts and Bug Hunting advises"
   cover_image:  blog-cover.jpg
   logo:         logo.jpg
 

