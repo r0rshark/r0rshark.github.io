@@ -1,5 +1,6 @@
-include: ["keybase.txt"]
+include: [".well-known"]
 inc:
+
   # Blog Information
   title:        "r0rshark Blog"
   subtitle:     "Computer Security thoughts and Bug Hunting advises"
