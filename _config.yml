@@ -43,7 +43,7 @@ source:      .
 destination: ./_site
 plugins:     ./_plugins
 layouts:     ./_layouts
-include:     ['.htaccess']
+include:     ['keybase.txt','.htaccess']
 exclude:     []
 timezone:    nil
 
