@@ -1,0 +1,52 @@
+==================================================================
+https://keybase.io/dblock
+--------------------------------------------------------------------
+
+I hereby claim:
+
+  * I am an admin of https://r0rshark.github.io
+  * I am r0rshark (https://keybase.io/r0rshark) on keybase.
+  * I have a public key ASDeyG-q4ODk54qcgsRvlwEJq5eVNTqCxTLrp7CmyUDxwgo
+
+To do so, I am signing this object:
+
+{
+    "body": {
+        "key": {
+            "eldest_kid": "0120dec86faae0e0e4e78a9c82c46f970109ab9795353a82c532eba7b0a6c940f1c20a",
+            "host": "keybase.io",
+            "kid": "0120dec86faae0e0e4e78a9c82c46f970109ab9795353a82c532eba7b0a6c940f1c20a",
+            "uid": "960c13b6c4e0340fbad0ccbb60a5e419",
+            "username": "r0rshark"
+        },
+        "service": {
+            "hostname": "r0rshark.github.io",
+            "protocol": "https:"
+        },
+        "type": "web_service_binding",
+        "version": 1
+    },
+    "client": {
+        "name": "keybase.io go client",
+        "version": "1.0.16"
+    },
+    "ctime": 1473109212,
+    "expire_in": 504576000,
+    "merkle_root": {
+        "ctime": 1473109057,
+        "hash": "00bc0755044e8866b4fba5f815056467361f02cd6050477ae0477099c0d9f1723599878a384a99532722f5998700d4264042c5bfc50f30f54cf41a0abda24d48",
+        "seqno": 619821
+    },
+    "prev": "089e9d13a322b1a7e2508b63e3ec370b99f6132b5007a72301363ab624915049",
+    "seqno": 8,
+    "tag": "signature"
+}
+
+which yields the signature:
+
+g6Rib2R5hqhkZXRhY2hlZMOpaGFzaF90eXBlCqNrZXnEIwEg3shvquDg5OeKnILEb5cBCauXlTU6gsUy66ewpslA8cIKp3BheWxvYWTFAvp7ImJvZHkiOnsia2V5Ijp7ImVsZGVzdF9raWQiOiIwMTIwZGVjODZmYWFlMGUwZTRlNzhhOWM4MmM0NmY5NzAxMDlhYjk3OTUzNTNhODJjNTMyZWJhN2IwYTZjOTQwZjFjMjBhIiwiaG9zdCI6ImtleWJhc2UuaW8iLCJraWQiOiIwMTIwZGVjODZmYWFlMGUwZTRlNzhhOWM4MmM0NmY5NzAxMDlhYjk3OTUzNTNhODJjNTMyZWJhN2IwYTZjOTQwZjFjMjBhIiwidWlkIjoiOTYwYzEzYjZjNGUwMzQwZmJhZDBjY2JiNjBhNWU0MTkiLCJ1c2VybmFtZSI6InIwcnNoYXJrIn0sInNlcnZpY2UiOnsiaG9zdG5hbWUiOiJyMHJzaGFyay5naXRodWIuaW8iLCJwcm90b2NvbCI6Imh0dHBzOiJ9LCJ0eXBlIjoid2ViX3NlcnZpY2VfYmluZGluZyIsInZlcnNpb24iOjF9LCJjbGllbnQiOnsibmFtZSI6ImtleWJhc2UuaW8gZ28gY2xpZW50IiwidmVyc2lvbiI6IjEuMC4xNiJ9LCJjdGltZSI6MTQ3MzEwOTIxMiwiZXhwaXJlX2luIjo1MDQ1NzYwMDAsIm1lcmtsZV9yb290Ijp7ImN0aW1lIjoxNDczMTA5MDU3LCJoYXNoIjoiMDBiYzA3NTUwNDRlODg2NmI0ZmJhNWY4MTUwNTY0NjczNjFmMDJjZDYwNTA0NzdhZTA0NzcwOTljMGQ5ZjE3MjM1OTk4NzhhMzg0YTk5NTMyNzIyZjU5OTg3MDBkNDI2NDA0MmM1YmZjNTBmMzBmNTRjZjQxYTBhYmRhMjRkNDgiLCJzZXFubyI6NjE5ODIxfSwicHJldiI6IjA4OWU5ZDEzYTMyMmIxYTdlMjUwOGI2M2UzZWMzNzBiOTlmNjEzMmI1MDA3YTcyMzAxMzYzYWI2MjQ5MTUwNDkiLCJzZXFubyI6OCwidGFnIjoic2lnbmF0dXJlIn2jc2lnxED3XS9l4HXdBJLarE93aK33Ms1IcHOpjkUgBrL5BT0iAIfcOizS/ZSBhFofBz87360ciU1J4Ctr/Oa66F0ZctQAqHNpZ190eXBlIKN0YWfNAgKndmVyc2lvbgE=
+
+And finally, I am proving ownership of this host by posting or
+appending to this document.
+
+View my publicly-auditable identity here: https://keybase.io/r0rshark
