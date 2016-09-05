@@ -1,10 +1,11 @@
+include: ["keybase.txt"]
 inc:
   # Blog Information
   title:        "r0rshark Blog"
   subtitle:     "Computer Security thoughts and Bug Hunting advises"
   cover_image:  blog-cover.jpg
   logo:         logo.jpg
-
+  
   # Company information
   company:      r0rshark Blog
   url:          https://r0rshark.github.io
